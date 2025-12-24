@@ -29,12 +29,29 @@ export const logout = async (req, res, next) => {
   }
 };
 
-export const getProfile = async (req, res) => {
+export const getProfile = async (req, res, next) => {
   try {
-    // req.user sudah diisi oleh authMiddleware
-    res.json(req.user);
+    const userId = req.user.id; // dari JWT
+    const profile = await authService.getProfile(userId);
+    res.json(profile);
   } catch (err) {
-    console.error("getProfile error:", err);
-    res.status(500).json({ message: "Terjadi kesalahan server" });
+    next(err);
+  }
+};
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { nama, no_telp, alamat } = req.body;
+
+    await authService.updateProfile(userId, {
+      nama,
+      no_telp,
+      alamat,
+    });
+
+    res.json({ message: "Profil berhasil diperbarui" });
+  } catch (err) {
+    next(err);
   }
 };

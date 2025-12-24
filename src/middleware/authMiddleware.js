@@ -1,68 +1,60 @@
 import jwt from "jsonwebtoken";
 import db from "../config/db.js";
 
-/**
- * Authentication Middleware
- * - Memvalidasi JWT Bearer Token
- * - Memastikan user masih valid di database
- * - Menyimpan user minimal ke req.user
- */
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    // 1. Cek header Authorization
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        message: "Token tidak ditemukan atau format salah",
-      });
+      return res.status(401).json({ message: "Token tidak ditemukan" });
     }
 
-    // 2. Ambil token
-    const token = authHeader.split(" ")[1];
+    const accessToken = authHeader.split(" ")[1];
 
-    // 3. Verifikasi JWT
+    // 1️⃣ Verify ACCESS TOKEN
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
     } catch (err) {
-      return res.status(403).json({
-        message: "Token tidak valid atau kadaluarsa",
-      });
+      return res.status(403).json({ message: "Access token tidak valid" });
     }
 
-    // 4. Validasi payload minimum
-    if (!decoded.id) {
-      return res.status(403).json({
-        message: "Token tidak valid",
-      });
-    }
-
-    // 5. Cek user masih ada di database
-    const [rows] = await db.query(
-      "SELECT id, email, nama FROM users WHERE id = ? LIMIT 1",
+    // 2️⃣ CEK USER
+    const [[user]] = await db.query(
+      "SELECT id, email, nama FROM users WHERE id = ?",
       [decoded.id]
     );
 
-    if (rows.length === 0) {
-      return res.status(401).json({
-        message: "User tidak ditemukan atau sudah dihapus",
-      });
+    if (!user) {
+      return res.status(401).json({ message: "User tidak ditemukan" });
     }
 
-    // 6. Attach user minimal ke request (trust boundary)
+    // 3️⃣ CEK REFRESH TOKEN MASIH ADA (SESSION VALID)
+const [tokenRows] = await db.query(
+  "SELECT id FROM refresh_tokens WHERE user_id = ? LIMIT 1",
+  [decoded.id]
+);
+
+if (tokenRows.length === 0) {
+  return res.status(401).json({
+    message: "Sesi login telah berakhir",
+  });
+}
+
+
+    
+
+    // 4️⃣ ATTACH USER
     req.user = {
-      id: rows[0].id,
-      email: rows[0].email,
-      nama: rows[0].nama,
+      id: user.id,
+      email: user.email,
+      nama: user.nama,
     };
 
     next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    res.status(500).json({
-      message: "Terjadi kesalahan pada proses autentikasi",
-    });
+  } catch (err) {
+    console.error("Auth error:", err);
+    res.status(500).json({ message: "Auth server error" });
   }
 };
 

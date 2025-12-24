@@ -6,21 +6,36 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "../utils/token.js";
+import * as userRepo from "../repositories/userRepository.js";
+import db from "../config/db.js";
 
 export const login = async ({ email, password }) => {
-  console.log("Login attempt:", email);
-  const user = await repo.findUserByEmail(email);
-  console.log("User found:", user);
+  const [rows] = await db.query(
+    "SELECT * FROM users WHERE email = ? LIMIT 1",
+    [email]
+  );
 
-  if (!user) throw new AppError("Email atau password salah", 401);
+  if (rows.length === 0) {
+    throw new Error("Email tidak terdaftar");
+  }
 
-  const match = await bcrypt.compare(password, user.password);
-  console.log("Password match:", match);
-  if (!match) throw new AppError("Email atau password salah", 401);
+  const user = rows[0];
 
-  const payload = { id: user.id, email: user.email };
-  const accessToken = generateAccessToken(payload);
-  const refreshToken = generateRefreshToken(payload);
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    throw new Error("Password salah");
+  }
+
+  // Menghapus refresh token lama (logout device lain)
+  await db.query("DELETE FROM refresh_tokens WHERE user_id = ?", [user.id]);
+
+  const accessToken = generateAccessToken({ id: user.id });
+  const refreshToken = generateRefreshToken({ id: user.id });
+
+  await db.query(
+    "INSERT INTO refresh_tokens (user_id, token) VALUES (?, ?)",
+    [user.id, refreshToken]
+  );
 
   return { accessToken, refreshToken };
 };
@@ -45,6 +60,28 @@ export const refreshToken = async (token) => {
   return newAccessToken;
 };
 
-export const logout = async (token) => {
-  await repo.deleteRefreshToken(token);
+export const logout = async (refreshToken) => {
+  await db.query(
+    "DELETE FROM refresh_tokens WHERE token = ?",
+    [refreshToken]
+  );
+};
+
+
+export const getProfile = async (userId) => {
+  const user = await userRepo.findById(userId);
+
+  if (!user) {
+    throw new AppError("User tidak ditemukan", 404);
+  }
+
+  return user;
+};
+
+export const updateProfile = async (userId, data) => {
+  const affected = await userRepo.updateProfile(userId, data);
+
+  if (affected === 0) {
+    throw new AppError("User tidak ditemukan", 404);
+  }
 };
