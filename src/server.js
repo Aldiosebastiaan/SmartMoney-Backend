@@ -43,6 +43,6 @@ app.listen(PORT, () => {
 });
 
 app.use(cors({
-  origin: ["https://smart-money-weld.vercel.app/"], // URL Vercel Anda nanti
+  origin: ["https://smart-money-nine.vercel.app/"], // URL Vercel Anda nanti
   credentials: true
 }));
