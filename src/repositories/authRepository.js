@@ -8,10 +8,10 @@ export const findUserByEmail = async (email) => {
   return rows[0];
 };
 
-export const saveRefreshToken = async (userId, token, expiresAt) => {
+export const saveRefreshToken = async (userId, token) => { // Hapus expiresAt, sesuai schema
   await db.query(
-    "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)",
-    [userId, token, expiresAt]
+    "INSERT INTO refresh_tokens (user_id, token) VALUES (?, ?)",
+    [userId, token]
   );
 };
 

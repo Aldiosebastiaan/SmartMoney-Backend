@@ -2,12 +2,30 @@ import * as repo from "../repositories/transaksiRepository.js";
 import AppError from "../utils/AppError.js";
 import db from "../config/db.js";
 
-export const getUserTransaksi = async (userId) => {
-  const [rows] = await db.query(
-    "SELECT id, nama, kategori, nominal, tanggal FROM transaksi WHERE user_id = ? ORDER BY tanggal DESC",
-    [userId]
-  );
-  return rows;
+export const getUserTransaksiPaginated = async (
+  userId,
+  page = 1,
+  limit = 10
+) => {
+  page = Math.max(parseInt(page), 1);
+  limit = Math.min(parseInt(limit), 50);
+
+  const offset = (page - 1) * limit;
+
+  const [data, totalData] = await Promise.all([
+    repo.findAllByUserPaginated(userId, limit, offset),
+    repo.countByUser(userId),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      totalData,
+      totalPage: Math.ceil(totalData / limit),
+    },
+    data,
+  };
 };
 
 export const createTransaksi = async (userId, data) => {

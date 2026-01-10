@@ -1,16 +1,36 @@
 import db from "../config/db.js";
 import AppError from "../utils/AppError.js";
 
-export const findAllByUser = async (userId) => {
+export const findAllByUserPaginated = async (
+  userId,
+  limit,
+  offset
+) => {
   const [rows] = await db.query(
-    `SELECT id, nama, kategori, nominal, tanggal
-     FROM transaksi
-     WHERE user_id = ?
-     ORDER BY tanggal DESC`,
-    [userId]
+    `
+    SELECT id, nama, kategori, nominal, tanggal
+    FROM transaksi
+    WHERE user_id = ?
+    ORDER BY tanggal DESC
+    LIMIT ? OFFSET ?
+    `,
+    [userId, limit, offset]
   );
 
   return rows;
+};
+
+export const countByUser = async (userId) => {
+  const [[row]] = await db.query(
+    `
+    SELECT COUNT(*) AS total
+    FROM transaksi
+    WHERE user_id = ?
+    `,
+    [userId]
+  );
+
+  return row.total;
 };
 
 export const insert = async (userId, { nama, kategori, nominal, tanggal }) => {

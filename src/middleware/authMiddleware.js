@@ -29,20 +29,17 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "User tidak ditemukan" });
     }
 
-    // 3️⃣ CEK REFRESH TOKEN MASIH ADA (SESSION VALID)
-const [tokenRows] = await db.query(
-  "SELECT id FROM refresh_tokens WHERE user_id = ? LIMIT 1",
-  [decoded.id]
-);
+    // 3️⃣ CEK REFRESH TOKEN MASIH ADA (SESSION VALID) - Hapus check expires_at karena tidak ada di schema
+    const [tokenRows] = await db.query(
+      "SELECT id FROM refresh_tokens WHERE user_id = ? LIMIT 1",
+      [decoded.id]
+    );
 
-if (tokenRows.length === 0) {
-  return res.status(401).json({
-    message: "Sesi login telah berakhir",
-  });
-}
-
-
-    
+    if (tokenRows.length === 0) {
+      return res.status(401).json({
+        message: "Sesi login telah berakhir",
+      });
+    }
 
     // 4️⃣ ATTACH USER
     req.user = {

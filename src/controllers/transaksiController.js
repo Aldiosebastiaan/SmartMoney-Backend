@@ -1,13 +1,43 @@
 import * as service from "../services/transaksiService.js";
+import db from "../config/db.js";
 
-export const getTransaksi = async (req, res, next) => {
+export const getTransaksi = async (req, res) => {
   try {
-    const data = await service.getUserTransaksi(req.user.id);
-    res.json(data);
-  } catch (error) {
-    next(error);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const [[{ total }]] = await db.query(
+      "SELECT COUNT(*) as total FROM transaksi"
+    );
+
+    const [rows] = await db.query(
+      `SELECT * FROM transaksi
+       ORDER BY tanggal DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset]
+    );
+
+    res.json({
+      data: rows,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Gagal mengambil transaksi" });
   }
 };
+
+{/* export const getAllTransaksi = async (req, res) => {
+  const [rows] = await db.query(
+    "SELECT * FROM transaksi ORDER BY tanggal ASC"
+  );
+  res.json(rows);
+}; */}
 
 export const createTransaksi = async (req, res, next) => {
   try {

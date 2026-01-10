@@ -7,39 +7,23 @@ import {
   generateRefreshToken,
 } from "../utils/token.js";
 import * as userRepo from "../repositories/userRepository.js";
-import db from "../config/db.js";
 
 export const login = async ({ email, password }) => {
-  const [rows] = await db.query(
-    "SELECT * FROM users WHERE email = ? LIMIT 1",
-    [email]
-  );
+  // Gunakan repository untuk konsistensi
+  const user = await repo.findUserByEmail(email);
+  if (!user) return null;
 
-  if (rows.length === 0) {
-    throw new Error("Email tidak terdaftar");
-  }
-
-  const user = rows[0];
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    throw new Error("Password salah");
-  }
-
-  // Menghapus refresh token lama (logout device lain)
-  await db.query("DELETE FROM refresh_tokens WHERE user_id = ?", [user.id]);
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return null;
 
   const accessToken = generateAccessToken({ id: user.id });
-  const refreshToken = generateRefreshToken({ id: user.id });
+  const refreshToken = generateRefreshToken({ id: user.id }); // Sekarang string, bukan objek
 
-  await db.query(
-    "INSERT INTO refresh_tokens (user_id, token) VALUES (?, ?)",
-    [user.id, refreshToken]
-  );
+  // Gunakan repository untuk insert (tanpa expires_at, sesuai schema)
+  await repo.saveRefreshToken(user.id, refreshToken);
 
   return { accessToken, refreshToken };
 };
-
 
 export const refreshToken = async (token) => {
   const stored = await repo.findRefreshToken(token);
@@ -61,12 +45,8 @@ export const refreshToken = async (token) => {
 };
 
 export const logout = async (refreshToken) => {
-  await db.query(
-    "DELETE FROM refresh_tokens WHERE token = ?",
-    [refreshToken]
-  );
+  await repo.deleteRefreshToken(refreshToken);
 };
-
 
 export const getProfile = async (userId) => {
   const user = await userRepo.findById(userId);
