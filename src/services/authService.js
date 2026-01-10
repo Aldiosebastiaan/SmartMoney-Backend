@@ -8,6 +8,23 @@ import {
 } from "../utils/token.js";
 import * as userRepo from "../repositories/userRepository.js";
 
+export const register = async ({ nama, email, password }) => {
+  const existingUser = await repo.findUserByEmail(email);
+  if (existingUser) {
+    throw new AppError("Email sudah digunakan", 400);
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const userId = await userRepo.createUser({
+    nama,
+    email,
+    password: hashedPassword,
+  });
+
+  return userId;
+};
+
 export const login = async ({ email, password }) => {
   // Gunakan repository untuk konsistensi
   const user = await repo.findUserByEmail(email);

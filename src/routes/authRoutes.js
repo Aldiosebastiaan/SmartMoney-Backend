@@ -1,6 +1,6 @@
 import express from "express";
 
-import { login, refresh, logout, getProfile, updateProfile } from "../controllers/authController.js";
+import { login, register, refresh, logout, getProfile, updateProfile } from "../controllers/authController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -12,7 +12,9 @@ const router = express.Router();
 
 router.use(apiLimiter);
 
-router.post("/login", login); // HAPUS authLimiter di sini - andalkan loginLimitter.js saja
+router.post("/register", register);
+
+router.post("/login", login);
 
 router.post("/refresh", refresh);
 

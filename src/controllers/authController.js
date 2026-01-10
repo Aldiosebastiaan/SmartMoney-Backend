@@ -52,6 +52,21 @@ export const login = async (req, res) => {
   }
 };
 
+export const register = async (req, res, next) => {
+  try {
+    const { nama, email, password } = req.body;
+    
+    await authService.register({ nama, email, password });
+
+    res.status(201).json({
+      success: true,
+      message: "Registrasi berhasil, silakan login",
+    });
+  } catch (error) {
+    next(error); // Melempar ke error handler middleware
+  }
+};
+
 export const refresh = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
