@@ -20,3 +20,11 @@ export const updateProfile = async (id, { nama, no_telp, alamat }) => {
 
   return result.affectedRows;
 };
+
+export const createUser = async ({ nama, email, password }) => {
+  const [result] = await db.query(
+    "INSERT INTO users (nama, email, password) VALUES (?, ?, ?)",
+    [nama, email, password]
+  );
+  return result.insertId;
+};
