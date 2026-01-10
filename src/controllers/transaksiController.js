@@ -3,19 +3,24 @@ import db from "../config/db.js";
 
 export const getTransaksi = async (req, res) => {
   try {
+    const userId = req.user.id; // Ambil ID user dari middleware auth
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
+    // 1. Tambahkan WHERE user_id = ? agar total yang dihitung hanya milik user tersebut
     const [[{ total }]] = await db.query(
-      "SELECT COUNT(*) as total FROM transaksi"
+      "SELECT COUNT(*) as total FROM transaksi WHERE user_id = ?",
+      [userId]
     );
 
+    // 2. Tambahkan WHERE user_id = ? agar data yang ditarik hanya milik user tersebut
     const [rows] = await db.query(
-      `SELECT * FROM transaksi
-       ORDER BY tanggal DESC
+      `SELECT * FROM transaksi 
+       WHERE user_id = ? 
+       ORDER BY tanggal DESC 
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [userId, limit, offset]
     );
 
     res.json({
@@ -28,6 +33,7 @@ export const getTransaksi = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Gagal mengambil transaksi" });
   }
 };
